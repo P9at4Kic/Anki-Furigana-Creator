@@ -23,19 +23,8 @@ def yieldFurigana(motKanji): #return motKanji with furigana added to the string
     
     furigana = re.findall('(?<=i">)[^</spa]*', L[0])
     res = motKanji
-    i = 0
-    while furigana != [] and i < len(res):
-        if res[i] >= u'\u4e00' and res[i] <= u'\u9faf':
-            res = res[0:i] + " " + res[i:]
-            res = res[0:i+2] + '['+furigana[0]+']' + res[i+2:]
-            i = i + 3 + len(furigana[0])
-            furigana.pop(0)
-        else:
-            i = i + 1
-    if res[0] == " ":
-        return res[1:]
-    else:
-        return res
+    res = '<ruby>' + res + '<rt>' + ''.join(furigana) + '</rt></ruby>'
+    return res
 
 def gc(arg, fail=False):
     return mw.addonManager.getConfig(__name__).get(arg, fail)
