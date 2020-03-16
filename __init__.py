@@ -3,14 +3,14 @@ import os.path
 import json
 import re
 
-import requests
 import urllib.parse
 import urllib.request    
 
 from aqt.qt import * 
 from aqt import mw
 
-def yieldFurigana(motKanji): #return motKanji with furigana added to the string
+
+def yieldFurigana(motKanji):  # return motKanji with furigana added to the string
     try:
         urllib.request.urlretrieve("https://jisho.org/word/" + urllib.parse.quote(motKanji), "tempo.txt")
 
@@ -20,37 +20,25 @@ def yieldFurigana(motKanji): #return motKanji with furigana added to the string
         
     with open('tempo.txt') as f:
         L = f.readlines()[574:575]
-    
-    furigana = re.findall('(?<=i">)[^</spa]*', L[0])
-    res = motKanji
-    res = '<ruby>' + res + '<rt>' + ''.join(furigana) + '</rt></ruby>'
-    return res
+
+    hiragana = "".join(re.findall('(?<=i">)[^</spa]*', L[0]))
+    furigana = "<ruby>{0}<rt>{1}</rt></ruby>".format(motKanji, hiragana)
+    return furigana
+
 
 def gc(arg, fail=False):
     return mw.addonManager.getConfig(__name__).get(arg, fail)
 
+
 def addFurigana(editor):
     selection = editor.web.selectedText()
-    current = editor.note.fields[editor.currentField]
     if not selection:
         return
-    
-    editor.web.setFocus()
-    field = editor.currentField
-    editor.web.eval("focusField(%d);" % field)
-    
-    before = re.findall('.*(?=' + selection + ')',current)
-    after = re.findall('(?<=' + selection + ').*',current)
-    if len(before) >= 1 and len(after) >= 1:
-        editor.note.fields[editor.currentField] = before[0] + yieldFurigana(selection) + after[0]
-    
-    editor.loadNote()
-    # focus the field, so that changes are saved
-    # this causes the cursor to go to the end of the field
-    editor.web.setFocus()
-    field = editor.currentField
-    editor.web.eval("focusField(%d);" % field)
-         
+    editor.web.eval(
+        "document.execCommand('insertHTML', false, %s);"
+        % json.dumps(yieldFurigana(selection)))
+
+
 def setupEditorButtonsFilter(buttons, editor):
     key = QKeySequence(gc('Key_insert_furigana'))
     keyStr = key.toString(QKeySequence.NativeText)
@@ -59,10 +47,11 @@ def setupEditorButtonsFilter(buttons, editor):
             os.path.join(os.path.dirname(__file__), "icons", "furigana.png"),
             "button_add_furigana",
             addFurigana,
-            tip="Insert furigana ({})".format(keyStr),
+            tip="Insert furigana".format(keyStr),
             keys=gc('Key_insert_furigana')
             )
         buttons.append(b)
     return buttons
+
 
 addHook("setupEditorButtons", setupEditorButtonsFilter)
